@@ -1,0 +1,53 @@
+# -*- coding: iso-8859-15 -*-
+'''
+Created on 28.01.2010
+
+@author: Oskar
+'''
+import pyTetClient
+from Disc import Disc
+import tobiiConfiguration
+import viz
+
+
+class PyTobiiCameraVisualisation(viz.EventClass):
+    '''Zeigt die von der Kamera aus gesehene Augenposition.'''
+    def __init__(self, tc):
+        viz.EventClass.__init__(self)
+        self.__tc = tc
+        
+        self.__discLeft  = Disc()
+        self.__discRight = Disc()
+        
+        self.__active = False
+    
+    
+    def show(self):
+        '''Zeige die Augenposition.'''
+        self.__active = True
+        self.__discLeft.visible(True)
+        self.__discRight.visible(True)
+        self.callback(pyTetClient.VizEventSink.OnGazeData, self.__update)
+        
+        
+    def hide(self):
+        '''Verstecke die Augenposition.'''
+        self.__active = False
+        self.__discLeft.visible(False)
+        self.__discRight.visible(False)
+        self.callback(pyTetClient.VizEventSink.OnGazeData, None)
+    
+    
+    def __update(self, event):
+        '''Aktualisiere die Positionsdaten.'''
+        data = event.data
+        
+        lx, ly = pyTetClient.tobiiToVizCoord(data.x_camerapos_lefteye, data.y_camerapos_lefteye)
+        rx, ry = pyTetClient.tobiiToVizCoord(data.x_camerapos_righteye, data.y_camerapos_righteye )
+        
+        self.__discLeft.translate(-lx, ly, tobiiConfiguration.screenDistance)
+        self.__discRight.translate(-rx, ry, tobiiConfiguration.screenDistance)
+        
+        self.__discLeft.visible(data.validity_lefteye != 4)     #bei völlig falschen daten die disc nicht anzeigen
+        self.__discRight.visible(data.validity_righteye != 4)   #bei völlig falschen daten die disc nicht anzeigen
+

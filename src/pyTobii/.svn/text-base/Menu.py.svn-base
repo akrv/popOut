@@ -1,0 +1,103 @@
+# -*- coding: iso-8859-15 -*-
+'''
+Created on 04.03.2011
+
+@author: oskar
+'''
+import pyTobii
+import viz
+import vizact
+import vizmenu
+import viztask
+
+class Menu:
+    def __init__(self):
+        '''Initialisiere Farben.'''
+        darkTheme = viz.getTheme()
+        darkTheme.borderColor = (0.1,0.1,0.1,1)
+        darkTheme.backColor = (0.4,0.4,0.4,1)
+        darkTheme.lightBackColor = (0.6,0.6,0.6,1)
+        darkTheme.darkBackColor = (0.2,0.2,0.2,1)
+        darkTheme.highBackColor = (0.2,0.2,0.2,1)
+        viz.setTheme(darkTheme)
+
+        self.__menu = None
+
+
+    def show(self):
+        '''Zeige das Menü an.'''
+        if self.__menu: return
+        
+        viz.mouse.setVisible(True)
+        self.__menu = vizmenu.add()
+        self.__menu.setAlignment(vizmenu.CENTER)
+
+        calibMenu = self.__menu.add('Calibration')
+        calibButton = calibMenu.add(viz.BUTTON_LABEL,'Calibrate')
+        calibPerfectButton = calibMenu.add(viz.BUTTON_LABEL,'Calibrate with recalibration')
+        calibResultDiscsButton = calibMenu.add(viz.BUTTON_LABEL,'Show/Hide calibration result Discs')
+        calibResultNetButton = calibMenu.add(viz.BUTTON_LABEL,'Show/Hide calibration result Net')
+        
+        camMenu = self.__menu.add('Camera')
+        camButton = camMenu.add(viz.BUTTON_LABEL,'Show/Hide camera data')
+        
+        gazeMenu = self.__menu.add('Gaze')
+        gazeButton = gazeMenu.add(viz.BUTTON_LABEL,'Show/Hide gaze data')
+        
+        vizact.onbuttonup(calibButton, self.__calib)
+        vizact.onbuttonup(calibPerfectButton, self.__calib, True)
+        vizact.onbuttonup(calibResultDiscsButton, self.__toggleCalibResultDiscs)
+        vizact.onbuttonup(calibResultNetButton, self.__toggleCalibResultNet)
+        vizact.onbuttonup(camButton, self.__toggleCam)
+        vizact.onbuttonup(gazeButton, self.__toggleGaze)
+        
+        
+    def hide(self):
+        '''Entferne das Menü.'''
+        if self.__menu:
+            self.__menu.remove()
+            viz.mouse.setVisible(False)
+            del self.__menu
+            self.__menu = None
+
+        
+    def __calib(self, perfect = False):
+        '''Starte die Kalibrierung.'''
+        self.__menu.setVisible(False)
+        viztask.schedule(pyTobii.calibrate(perfect = perfect))
+    
+    
+    def __toggleCalibResultDiscs(self):
+        '''Zeige/Verstecke die Ergebnisse der Kalibrierung.'''
+        self.__menu.setVisible(False)
+        if not pyTobii.isShowingCalibrationResultPoints():
+            pyTobii.showCalibrationResultPoints()
+        else:
+            pyTobii.hideCalibrationResultPoints()
+            
+    
+    def __toggleCalibResultNet(self):
+        '''Zeige/Verstecke die Ergebnisse der Kalibrierung.'''
+        self.__menu.setVisible(False)
+        if not pyTobii.isShowingCalibrationResultNet():
+            pyTobii.showCalibrationResultNet()
+        else:
+            pyTobii.hideCalibrationResultNet()
+            
+    
+    def __toggleCam(self):
+        '''Zeige/Verstecke die Kameradaten (Augenposition aus sicht des Tobii).'''
+        self.__menu.setVisible(False)
+        if pyTobii.isShowingCamera():
+            pyTobii.hideCameraPoint()
+        else:
+            pyTobii.showCameraPoint()
+        
+        
+    def __toggleGaze(self):
+        '''Zeige/Verstecke die Blickposition.'''
+        self.__menu.setVisible(False)
+        if pyTobii.isShowingGaze():
+            pyTobii.hideGazePoint()
+        else:
+            pyTobii.showGazePoint()

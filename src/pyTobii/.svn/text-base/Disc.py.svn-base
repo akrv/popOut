@@ -1,0 +1,100 @@
+'''
+Created on 28.04.2009
+
+@author: Oskar
+'''
+import viz
+import math
+import tobiiConfiguration
+
+class Disc:
+    def __init__(self, discRadius = -1, discEdges = -1, disc = None, name = "disc", scene = 1):
+        self.__discDepth    = 0
+        self.__discRadius   = discRadius == -1 and tobiiConfiguration.discRadius or discRadius
+        self.__discEdges    = discEdges == -1 and tobiiConfiguration.discEdges or discEdges
+        self.__scene        = scene
+        self.__disc         = disc or self.__drawDisc()
+        self.__name         = name
+    
+    
+    def __drawDisc(self):
+        viz.startlayer(viz.TRIANGLE_FAN) 
+        angle = 360.0 / self.__discEdges 
+        
+        viz.vertex(0, 0, self.__discDepth)             #center 0,0,depth
+        for i in range(self.__discEdges + 1):
+            x = self.__discRadius * math.cos(math.radians(angle*i))
+            y = self.__discRadius * math.sin(math.radians(angle*i))
+            viz.vertex(x, y, self.__discDepth)         #draw edge
+        return viz.endlayer(scene = self.__scene)
+
+
+    def visible(self, vis = True):
+        '''
+        Setzt die Disc sichtbar oder versteckt sie.
+        '''
+        self.__disc.visible(vis)
+
+    
+    def remove(self):
+        self.__disc.remove()
+
+        
+    def translate(self, posx, posy = None, posz = None):
+        '''
+        Setzt die Position der Disc.
+        '''
+        if posy == None:
+            pos = posx
+        else:
+            pos = posx, posy, posz
+        self.__disc.translate(pos)
+
+        
+    def getPosition(self):
+        '''
+        Gibt die Position der Disc wieder.
+        '''
+        return self.__disc.getPosition()
+    
+    
+    def color(self, color=None):
+        '''
+        Ohne Parameter wird die Farbe wiedergegeben.
+        Mit Parameter wird die Farbe gesetzt.
+        '''
+        if not color:
+            return self.__disc.getColor() 
+        self.__disc.color(color)
+        
+    
+    def copy(self):
+        '''
+        Erstellt eine kopie der Disc und gibt diese wieder.
+        '''
+        disc = self.__disc.copy()    
+        return Disc(self.__discRadius, self.__discEdges, disc)
+    
+    
+    def setDepth(self, depth):
+        '''
+        Setzt die Tiefe der Disc (in m)
+        '''
+        pos = self.__disc.getPosition()
+        pos[2] = depth
+        self.__disc.translate(pos)
+    
+    
+    def scale(self, scale = None):
+        '''
+        Ohne Parameter: Gibt Skalierung der Disc wieder.
+        Mit Parameter: Skaliert die Disc.
+        '''
+        if not scale:
+            return self.__disc.getScale() 
+        if not isinstance(scale, list):
+            scale = [scale, scale, scale]
+        self.__disc.scale(scale)
+
+    def getName(self):
+        return self.__name

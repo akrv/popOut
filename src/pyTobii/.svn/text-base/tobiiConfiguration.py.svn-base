@@ -1,0 +1,40 @@
+# -*- coding: iso-8859-15 -*-
+'''
+Created on 09.11.2010
+
+@author: oskar
+'''
+from pyTobiiImports import TobiiConstants
+
+fixationColor               = 1, 1, 1           #farbe des fixationskreuzes
+
+#diese daten werden von der programmconfig übergeben
+windowResolution            = None
+monitorVerticalSize         = None
+monitorHorizontalSize       = None
+screenDistance              = None
+calibPosis                  = None
+
+#verbindungsinfo für den tobii
+connection                  = "localhost", TobiiConstants.TetConstants_DefaultServerPort, TobiiConstants.TetSynchronizationMode_Local
+
+#puffergröße und speicherintervall für blickdaten
+gazeProcessorBuffersize     = 50*5      #5 sekunden
+dataSaveIntervall           = 0.5       #alle wieviel sekunden daten rausgeschrieben werden 
+
+#discs werden zur anzeige der kalibrations-, kamera-, und blickdaten genutzt
+discRadius                  = 0.0075    #radius in m
+discEdges                   = 16        #wieviele ecken die disc hat -> mehr = runder
+
+
+#calibrationseisntellungen
+calibrationNumGoodSamples   = 4     #anzahl der brauchbaren samples für die config (siehe handbuch)
+calibrationScene            = 6     #in welcher vizard szene die kalibrierung laufen soll
+calibrationShrinkSpeed      = 0.5   #wie lange das quadrat kleiner wird 
+calibrationQuadSize         = 0.01  #größe der calibrierungsquadrate vor dem klein werden
+calibrationCrossSize        = 0.003 #länge jedes kreuzstriches
+
+
+
+leftColor = 0, 1, 0
+rightColor = 1, 0, 0

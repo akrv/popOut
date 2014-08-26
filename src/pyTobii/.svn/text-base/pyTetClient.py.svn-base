@@ -1,0 +1,326 @@
+# -*- coding: iso-8859-15 -*-
+'''
+Created on 08.11.2010
+
+@author: Oskar
+'''
+
+#TODO: howto:
+#pywin32 installieren http://sourceforge.net/projects/pywin32/files/
+#comtypes für python installieren http://sourceforge.net/projects/comtypes/files/
+#tobii sdk installieren
+
+from pyTobiiImports import InitValues, Threshold, Point
+from comtypes.client import CreateObject, ShowEvents, GetEvents, PumpEvents
+from threading import Thread, Event
+import tobiiConfiguration
+import pythoncom
+import time
+import viz
+
+
+class pyTetClient(Thread):
+    '''
+    Wrapperklasse für den TetClient.
+    '''
+    def __init__(self, eventSink = None):
+        '''
+        eventSink: "verbose" für detailierte Ausgaben, ansonsten eine Klasse wie VizEventSink (siehe unten)
+        '''
+        Thread.__init__(self)
+        self.__run  = True
+        self.__sink = eventSink
+        self.daemon = True
+        
+        self.__initialized = Event()
+        self.start()
+        self.__initialized.wait()   #kehre erst zum aufrufer zurück, wenn alles initialisiert wurde
+        
+
+    def run(self):
+        pythoncom.CoInitialize()
+        
+        #zu finden in der von pywin32 com browser makepy erstellten datei (c:\Python26\Lib\site-packages\win32com\gen_py\*.py))
+        self.__tc = CreateObject("TETComp.TetClient.2")
+        if self.__sink == "verbose":
+            eventProcessor = ShowEvents(self.__tc)
+        else:
+            eventProcessor = GetEvents(self.__tc, self.__sink)
+        self.__initialized.set()
+        while self.__run:   #pumpevents ist blockierend, aber wir möchten ja irgendwann das programm beenden können
+            PumpEvents(0.5)
+        del eventProcessor
+        time.sleep(0.1)
+        pythoncom.CoUninitialize()
+
+
+    def stopEventProcessing(self):
+        '''
+        Beendet den TetClient.
+        '''
+        self.__run = False
+        self.join(2)                #warte bis alles deaktiviert ist
+        
+    
+    def AddCalibrationPoint(self, x, y, numGoodSamples, block):
+        '''
+        Fügt einen neuen Kalibrationspunkt hinzu, siehe TobiiSDK.
+        '''
+        result = False
+        try:
+            result = self.__tc.AddCalibrationPoint(x, y, numGoodSamples, block)
+        except:
+            pass
+        return 
+
+
+    def CalculateAndSetCalibration(self, *args):
+        '''
+        Berechnet eine neue Kalibration, siehe TobiiSDK.
+        '''
+        result = False
+        try:
+            result = self.__tc.CalculateAndSetCalibration(*args)
+        except:
+            pass
+        return result
+
+
+    def ClearCalibration(self, *args):
+        '''
+        Löscht die Kalibrierung, siehe TobiiSDK.
+        '''
+        result = False
+        try:
+            self.__tc.ClearCalibration(*args)
+        except: pass
+        return result
+
+
+    def Connect(self, *args):
+        '''
+        Verbindet den TetClient mit dem TetServer, siehe TobiiSDK.
+        '''
+        result = False
+        try:
+            result = self.__tc.Connect(*args)
+        except:
+            pass
+            
+        return result
+
+
+    def Disconnect(self, *args):
+        '''
+        Trennt den TetClient vom TetServer, siehe TobiiSDK.
+        '''
+        return self.__tc.Disconnect(*args)
+
+
+    def GetCalibrationResult(self, *args):
+        '''
+        Gibt das Resultat der Kalibrierung wieder, siehe TobiiSDK.
+        '''
+        return self.__tc.GetCalibrationResult(*args)
+
+
+    def GetNumPendingPostGazeData(self, *args):
+        '''
+        Siehe TobiiSDK.
+        '''
+        return self.__tc.GetNumPendingPostGazeData(*args)
+
+
+    def GetSerialNumber(self, *args):
+        '''
+        Siehe TobiiSDK.
+        '''
+        return self.__tc.GetSerialNumber(*args)
+
+
+    def GetTimeStamp(self, *args):
+        '''
+        Gibt den aktuellen TimeStamp des Tobii wieder. (data.sec, data.microsec) 
+        '''
+        return self.__tc.GetTimeStamp(*args)
+
+
+    def InterruptAddCalibrationPoint(self, *args):
+        '''
+        Unterbricht das Hinzufügen eines Kalibrierungspunktes, siehe TobiiSDK.
+        '''
+        return self.__tc.InterruptAddCalibrationPoint(*args)
+
+
+    def LoadCalibrationFromFile(self, *args):
+        '''
+        Lädt eine gespeicherte kalibrierung, siehe TobiiSDK.
+        '''
+        return self.__tc.LoadCalibrationFromFile(*args)
+
+
+    def PerformSystemCheck(self, *args):
+        '''
+        Siehe TobiiSDK.
+        '''
+        return self.__tc.PerformSystemCheck(*args)
+
+
+    def RemoveCalibrationPoints(self, *args):
+        '''
+        Siehe TobiiSDK.
+        '''
+        return self.__tc.RemoveCalibrationPoints(*args)
+
+
+    def SaveCalibrationToFile(self, *args):
+        '''
+        Speichert die aktuelle Kalibrierung in eine Datei, siehe TobiiSDK.
+        '''
+        result = False
+        try:
+            result = self.__tc.SaveCalibrationToFile(*args)
+        except:
+            pass
+        return result
+
+
+    def StartTracking(self, *args):
+        '''
+        Beginnt das Tracking und somit das versenden der damit zusammenhängenden Events.
+        '''
+        result = False
+        try:
+            result = self.__tc.StartTracking(*args)
+        except:
+            pass
+        return result
+
+
+    def StopTracking(self, *args):
+        '''
+        Stoppt das Tracking.
+        '''
+        result = False
+        try:
+            result = self.__tc.StopTracking(*args)
+        except:
+            pass
+        return result
+
+    
+    @property
+    def GazeDataDelivery(self):
+        return self.__tc.GazeDataDelivery
+    
+    @property
+    def IsAddingCalibrationPoint(self):
+        return self.__tc.IsAddingCalibrationPoint
+
+    @property
+    def IsConnected(self):
+        return self.__tc.IsConnected
+
+    @property
+    def IsTracking(self):      
+        return self.__tc.IsTracking
+
+    @property
+    def ServerAddress(self):       
+        return self.__tc.ServerAddress
+
+    @property
+    def SynchronizationMode(self):    
+        return self.__tc.SynchronizationMode
+
+    @property
+    def portNumber(self):
+        return self.__tc.portNumber
+
+
+def tobiiToVizCoord(x, y):
+    '''
+    Rechnet die x, y-Koordinaten in die entsprechenden Vizard Koordinaten um.
+    '''
+    horizontal = tobiiConfiguration.calibPosis[8][0] - tobiiConfiguration.calibPosis[0][0]
+    vertical = tobiiConfiguration.calibPosis[8][1] - tobiiConfiguration.calibPosis[0][1]
+    x = horizontal * x + tobiiConfiguration.calibPosis[0][0]
+    y = vertical * y + tobiiConfiguration.calibPosis[0][1]
+    return x, y
+
+
+def vizToTobiiCoord(x, y):
+    '''
+    Rechnet die x, y-Koordinaten in die entsprechenden Tobii Koordinaten um.
+    '''
+    horizontal = tobiiConfiguration.calibPosis[8][0] - tobiiConfiguration.calibPosis[0][0]
+    vertical = tobiiConfiguration.calibPosis[8][1] - tobiiConfiguration.calibPosis[0][1]
+    x = (x-tobiiConfiguration.calibPosis[0][0]) / horizontal
+    y = (y-tobiiConfiguration.calibPosis[0][1]) / vertical
+    return x, y
+
+
+class VizEventSink:
+    '''
+    Diese Klasse dient comtypes.client.pumpevents als Eingabe. Sie empfängt die Nachrichten vom TetClient und sendet sie als viz-events weiter.
+    '''
+    OnGazeData                     = viz.getEventID('OnGazeData')
+    OnCalibrationGazeData          = viz.getEventID('OnCalibrationGazeData')
+    OnPostGazeData                 = viz.getEventID('OnPostGazeData')
+    OnPostCalibrationGazeData      = viz.getEventID('OnPostCalibrationGazeData')
+    OnTrackingStarted              = viz.getEventID('OnTrackingStarted')
+    OnTrackingStopped              = viz.getEventID('OnTrackingStopped')
+    OnAddCalibrationPointStarted   = viz.getEventID('OnAddCalibrationPointStarted')
+    OnAddCalibrationPointEnded     = viz.getEventID('OnAddCalibrationPointEnded')
+
+    def __createEvent(self, data = None):
+        '''
+        Erstelle das zu sendende Event.
+        '''
+        event           = viz.Event()
+        if data: data   = data.GetGazeData()
+        event.data      = data
+        event.time      = event.data and (data.timestamp_sec, data.timestamp_microsec) or None
+        event.vizTime   = viz.tick()
+        return event
+    
+
+    def DTetClientEvents_OnGazeData(self, this, gazeDataHolder, param):
+        event = self.__createEvent(gazeDataHolder)
+        viz.sendEvent(self.OnGazeData, event)
+
+    
+    def DTetClientEvents_OnPostGazeData(self, this, gazeDataHolder, param):
+        event = self.__createEvent(gazeDataHolder)
+        viz.sendEvent(self.OnPostGazeData, event)
+
+    
+    def DTetClientEvents_OnCalibrationGazeData(self, this, gazeDataHolder, param):
+        event = self.__createEvent(gazeDataHolder)
+        viz.sendEvent(self.OnCalibrationGazeData, event)
+    
+    
+    def DTetClientEvents_OnPostCalibrationGazeData(self, this, gazeDataHolder, param):
+        event = self.__createEvent(gazeDataHolder)
+        viz.sendEvent(self.OnPostCalibrationGazeData, event)
+    
+    
+    def DTetClientEvents_OnTrackingStarted(self, this, param):
+        event = self.__createEvent()
+        viz.sendEvent(self.OnTrackingStarted, event)
+    
+    
+    def DTetClientEvents_OnTrackingStopped(self, this, param):
+        event = self.__createEvent()
+        viz.sendEvent(self.OnTrackingStopped, event)
+    
+    
+    def DTetClientEvents_OnAddCalibrationPointStarted(self, this, param):
+        event = self.__createEvent()
+        viz.sendEvent(self.OnAddCalibrationPointStarted, event)
+    
+    
+    def DTetClientEvents_OnAddCalibrationPointEnded(self, this, param):
+        event = self.__createEvent()
+        viz.sendEvent(self.OnAddCalibrationPointEnded, event)
+

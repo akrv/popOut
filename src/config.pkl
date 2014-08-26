@@ -1,0 +1,15 @@
+(imainConfig
+Config
+p1
+(dp2
+S'fixationDuration'
+p3
+F0.5
+sS'outputFolder'
+p4
+VC:/Users/Aswin/Google Drive/IfADO/pythonProjects/exampletest/src
+p5
+sS'subject'
+p6
+I89
+sb.

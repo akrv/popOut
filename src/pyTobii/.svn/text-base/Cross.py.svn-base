@@ -1,0 +1,117 @@
+# -*- coding: iso-8859-15 -*-
+'''
+Created on 11.01.2011
+
+@author: oskar
+'''
+import viz
+import math
+import Configuration
+
+class Cross:
+    '''
+    Zeichnet ein Kreuz.
+    Parameter: crossWidth, lineWidth
+    '''
+    def __init__(self, crossWidth = 1, lineWidth = 1, color = [1,1,1], name = "Cross", scene = 1):
+        self.__crossWidth   = crossWidth
+        self.__lineWidth    = lineWidth
+        self.__name         = name
+        self.__scene        = scene
+        self.__cross        = self.__drawcross()
+        self.color(color)
+
+    
+    def __drawcross(self):
+        viz.startlayer(viz.LINES) 
+        viz.lineWidth(self.__lineWidth)
+        
+        #vertikaler crosssstrich
+        viz.vertex(0, -self.__crossWidth/2, 0)
+        viz.vertex(0, self.__crossWidth/2, 0)
+        
+        #horizontaler crossstrich
+        viz.vertex(-self.__crossWidth/2, 0, 0)
+        viz.vertex(self.__crossWidth/2, 0, 0)
+
+        return viz.endlayer(scene = self.__scene)
+
+
+    def visible(self, vis = True):
+        '''
+        Setzt den cross sichtbar oder versteckt ihn.
+        '''
+        self.__cross.visible(vis)
+
+    
+    def translate(self, posx, posy = None, posz = None):
+        '''
+        Setzt die Position des cross.
+        '''
+        if posy == None:
+            pos = posx
+        else:
+            pos = posx, posy, posz
+        self.__cross.translate(pos)
+
+        
+    def getPosition(self):
+        '''
+        Gibt die Position des cross wieder.
+        '''
+        return self.__cross.getPosition()
+    
+    
+    def color(self, color=None):
+        '''
+        Ohne Parameter wird die Farbe wiedergegeben.
+        Mit Parameter wird die Farbe gesetzt.
+        '''
+        if not color:
+            return self.__cross.getColor() 
+        self.__cross.color(color)
+        
+    
+    def setDepth(self, depth):
+        '''
+        Setzt die Tiefe des cross (in m)
+        '''
+        pos = self.__cross.getPosition()
+        pos[2] = depth
+        self.__cross.translate(pos)
+    
+    
+    def scale(self, scale = None):
+        '''
+        Ohne Parameter: Gibt Skalierung des cross wieder.
+        Mit Parameter: Skaliert den cross.
+        '''
+        if not scale:
+            return self.__cross.getScale() 
+        if not isinstance(scale, list):
+            scale = [scale, scale, scale]
+        self.__cross.scale(scale)
+
+
+    def getName(self):
+        '''
+        Gibt den Namen des cross wieder.
+        '''
+        return self.__name
+    
+if __name__ == '__main__':
+    #cross = cross.cross()
+    import viztask
+    import vizStart
+    vizStart.vizStart()
+    def test():
+        pixelSize = 0.282 / 1000
+        fix = Cross(3*pixelSize, 1)
+        posis = Configuration.calibPositions
+        for i in range(len(posis)):
+            yield viztask.waitKeyDown(" ")
+            posi = list(posis[i])
+            posi.append(Configuration.screenDistance)
+            fix.translate(posi)
+        viz.startlayer(viz.TRIANGLE_FAN) 
+    viztask.schedule(test())

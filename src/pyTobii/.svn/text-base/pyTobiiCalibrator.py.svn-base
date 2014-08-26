@@ -1,0 +1,196 @@
+# -*- coding: iso-8859-15 -*-
+'''
+Created on 08.11.2010
+
+@author: Oskar
+'''
+from Cross import Cross
+import pyTetClient
+import random
+import tobiiConfiguration
+import viz
+import viztask
+
+
+class pyTobiiCalibrator:
+    def __init__(self, tetClient, hwManager = None):
+        self.__tc        = tetClient
+        self.__hwManager = hwManager
+        
+        self.__cross = Cross(tobiiConfiguration.calibrationCrossSize, lineWidth = 1, scene = tobiiConfiguration.calibrationScene)
+        self.__cross.color(tobiiConfiguration.fixationColor)
+        self.__cross.visible(False)
+
+        self.__quad = viz.addTexQuad(scene = tobiiConfiguration.calibrationScene)
+        self.__quad.setPosition([0, 0, tobiiConfiguration.screenDistance])
+        self.__quad.scale([tobiiConfiguration.calibrationQuadSize]*3)
+        self.__quad.color(tobiiConfiguration.fixationColor)
+        self.__quad.visible(False)
+        
+        self.__isCalibrating = False
+
+        
+    def isCalibrating(self):
+        '''Gibt zurück, ob das Modul gerade kalibriert.'''
+        return self.__isCalibrating
+    
+    
+    def clearCalibration(self):
+        '''
+        Entferne alte Kalibrierung.
+        (Sollte vor jeder neuen ausgeführt werden.)
+        '''
+        self.__tc.ClearCalibration()
+        
+        
+    def calibrate(self, points, filename, fake = False):
+        '''
+        Startet die Kalibrierung an den übergebenen Punkten.
+        Speichert das Ergebnis in der entsprechenden Datei.
+        '''
+        self.__isCalibrating = True
+        #wechsel der szene
+        prevScene = viz.MainView.getScene()
+        viz.scene(tobiiConfiguration.calibrationScene)
+        
+        #randomisiere reihenfolge
+        points = list(points)
+        random.shuffle(points)
+        
+        #sammle daten für jeden punkt
+        for i, posi in enumerate(points):
+            yield self.__calibPoint(posi[0], posi[1], fake)
+            
+        if not fake:
+            #speichere neue calibration
+            self.__tc.CalculateAndSetCalibration()
+            self.__tc.SaveCalibrationToFile(filename)
+        self.__isCalibrating = False
+        #wechsel zur letzten szene
+        viz.scene(prevScene)
+        
+    
+    def getMissingPoints(self, points, filename):
+        '''Prüft die Kalibrierung und gibt nicht kalibrierte Positionen zurück.'''
+        try:
+            result = self.__tc.GetCalibrationResult(filename)
+        except:
+            print "could not read calibration"
+            return []
+        successfullPoints = []
+        for i in range(result.size):
+            current = result.GetAt(i)
+            if current.leftValidity == current.rightValidity == 1:
+                posi = current.truePointX, current.truePointY
+                posi = pyTetClient.tobiiToVizCoord(*posi)
+                posi = round(posi[0], 3), round(posi[1], 3)
+                if posi not in successfullPoints:
+                    successfullPoints.append(posi)
+        
+        missingPoints = []
+        for posi in points:
+            roundPos = round(posi[0], 3), round(posi[1], 3)
+            if roundPos not in successfullPoints:
+                missingPoints.append(posi)
+        return missingPoints
+
+
+    def __calibPoint(self, x, y, fake = False):
+        '''Nimmt Daten zu einem Punkt auf.'''
+        posi = x, y, tobiiConfiguration.screenDistance
+        self.__quad.translate(posi)
+        self.__cross.translate(posi)
+
+        self.__quad.visible(True)
+        yield self.__shrinkQuad(tobiiConfiguration.calibrationShrinkSpeed)    #500ms schrumpfen
+        #kreuz anzeigen
+        self.__quad.visible(False)
+        self.__cross.visible(True)
+        if self.__hwManager:
+            yield viztask.waitEvent(self.__hwManager.JOYBUTTON_UP)
+        else:
+            viz.waitKeyPress(' ') 
+
+        if not fake:
+            tobiiX, tobiiY = pyTetClient.vizToTobiiCoord(x, y)
+            self.__tc.AddCalibrationPoint(tobiiX, tobiiY, numGoodSamples = tobiiConfiguration.calibrationNumGoodSamples, block = True)
+        
+        yield viztask.waitTime(0.1)
+        self.__cross.visible(False)
+
+        
+    def __shrinkQuad(self, duration = 0.5):
+        '''
+        Animiert das kleinerwerden des Quadrats über die angegebene Zeitspanne.
+        (Blockierend)
+        '''
+        refreshRate = viz.getOption('viz.display.frequency')
+        if refreshRate:
+            refreshRate = int(refreshRate)
+        else:
+            print "WARNING: could not get refreshrate... using 120Hz"
+            refreshRate = 120
+            
+        steps = duration * refreshRate
+        minSize = 0.1
+        #spiel die eigentliche animation ab
+        for i in range(int(steps), 0, -1):
+            curScale = [tobiiConfiguration.calibrationQuadSize]*3
+            curScale[0] *= minSize + i/steps * (1-minSize)
+            curScale[1] *= minSize + i/steps * (1-minSize)
+            self.__quad.scale(curScale)
+            yield viztask.waitFrame(1)
+
+
+    def __expandQuad(self, duration = 0.125):
+        '''
+        Lässt das Quadrat wachsen.
+        (Blockierend)
+        '''
+        refreshRate = viz.getOption('viz.display.frequency')
+        if refreshRate:
+            refreshRate = int(refreshRate)
+        else:
+            print "WARNING: could not get refreshrate... using 120Hz"
+            refreshRate = 120
+
+        steps = int(duration * refreshRate)
+        startScale = self.__quad.scale()
+        curScale = startScale[:]
+        maxScale = 1
+        for i in range(steps):
+            curScale[0] = startScale[0] + (maxScale - startScale[0]) * float(i)/steps
+            curScale[1] = startScale[1] + (maxScale - startScale[1]) * float(i)/steps
+            self.__quad.scale(curScale)
+            viz.waitFrame(1)
+        self.__quad.scale([maxScale]*3)
+
+
+    def __moveTo(self, x, y, z, duration):
+        '''
+        Bewegt den Punkt langsam zur nächsten Position.
+        (Blockierend)
+        '''
+        refreshRate = viz.getOption('viz.display.frequency')
+        if refreshRate:
+            refreshRate = int(refreshRate)
+        else:
+            print "WARNING: could not get refreshrate... using 120Hz"
+            refreshRate = 120
+
+        hops = int(duration * refreshRate)
+        startPos = self.__quad.getPosition()
+        xDiff = (x - startPos[0]) / hops
+        yDiff = (y - startPos[1]) / hops
+        zDiff = (z - startPos[2]) / hops
+        for i in range(hops):
+            self.__quad.translate(startPos[0] + xDiff * i, startPos[1] + yDiff * i, startPos[2] + zDiff * i)
+            viz.waitFrame(1)
+
+
+if __name__ == '__main__':
+    tc = pyTetClient()
+    tc.Connect(*tobiiConfiguration.connection)
+    calib = pyTobiiCalibrator(tc)
+    print calib.getMissingPoints(tobiiConfiguration.calibPosis)
+
