@@ -18,7 +18,7 @@ class pyTobiiCalibrationVisualizer:
         
         self.__baseDisc         = Disc(self.__window)
 
-        self.calibData        = {}
+        self.__calibData        = {}
         self.__cachedAverages   = {}
         self.__truePointDiscs   = []    #die zu kalibrierende koordinate
         self.__leftPointDiscs   = []    #die dazu aufgenommenen daten des linken auges
@@ -30,9 +30,9 @@ class pyTobiiCalibrationVisualizer:
         self.__netRightLines    = []    #linien des netzes für das rechte auge
         
 
-    def processCalib(self, filename):
+    def __processCalib(self, filename):
         '''Speichert die Kalibrierung intern neu.'''
-        self.calibData = {}
+        self.__calibData = {}
         try:
             calib = self.__tc.GetCalibrationResult(filename)
         except:
@@ -44,11 +44,11 @@ class pyTobiiCalibrationVisualizer:
             if not (curData.leftValidity == 1 == curData.rightValidity): continue
             
             key = round(curData.truePointX, 2), round(curData.truePointY, 2)
-            if not key in self.calibData:
-                self.calibData[key] = []
+            if not key in self.__calibData:
+                self.__calibData[key] = []
             
             value = curData.leftMapX, curData.leftMapY, curData.rightMapX, curData.rightMapY
-            self.calibData[key].append(value)
+            self.__calibData[key].append(value)
             print key
             print value
             
@@ -72,9 +72,9 @@ class pyTobiiCalibrationVisualizer:
         '''
         if self.__truePointDiscs: 
             self.hideResultPoints()
-        self.processCalib(filename)
+        self.__processCalib(filename)
         
-        for truePoint, calibData in self.calibData.iteritems():    #gehe alle punkte und deren daten durch
+        for truePoint, calibData in self.__calibData.iteritems():    #gehe alle punkte und deren daten durch
             truePointX, truePointY = truePoint
             self.__addDisc(truePointX, truePointY, self.__truePointDiscs, scale = 0.6)  #zeige kalibrierungspunkte an
             for leftMapX, leftMapY, rightMapX, rightMapY in calibData:  #zeige dazu aufgenommene, gemappte punkte an
@@ -107,12 +107,12 @@ class pyTobiiCalibrationVisualizer:
         if truePosiKey in self.__cachedAverages:
             return self.__cachedAverages[truePosiKey]
         
-        if truePosiKey not in self.calibData:
+        if truePosiKey not in self.__calibData:
             print "key missing", truePosiKey
-            print self.calibData
+            print self.__calibData
             return -1, -1, -1, -1
         
-        calibData = self.calibData[truePosiKey]
+        calibData = self.__calibData[truePosiKey]
         
         sampleCount = len(calibData)
         avgLeftX = avgLeftY = avgRightX = avgRightY = 0
@@ -147,10 +147,10 @@ class pyTobiiCalibrationVisualizer:
         '''
         if self.__netTruePoints: 
             self.hideResultNet()
-        self.processCalib(filename)
+        self.__processCalib(filename)
         
         #zeichne zu kalibrierende punkte ein
-        for truePointX, truePointY in self.calibData.iterkeys():
+        for truePointX, truePointY in self.__calibData.iterkeys():
             self.__addDisc(truePointX, truePointY, self.__netTruePoints, scale = 0.6)
 
             #zeichne discs zu den durchschnittswerten
