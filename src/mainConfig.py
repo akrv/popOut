@@ -52,7 +52,7 @@ class Config: #initial configuration that can be modified using the interface
     
     '''a array for all the questions'''   
     questions = ['der grüne Kreis',
-                 'das unvollstaendige Quadrat',
+                 'das unvollständige Quadrat',
                  'die Raute',
                  'das rote Dreieck',
                  'der Stern'

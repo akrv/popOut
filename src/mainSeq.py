@@ -287,7 +287,7 @@ class Exp():
             if self.useTobii:
                 tobii.setTrigger(self.trial)
             self.showQuestionText(self.config.questions[self.config.questionIdx[y,0]])
-            print self.trial
+            #print self.trial
             if self.config.questionIdx[y,1] == 0 :
                 self.setImageFalse(self.config.questionIdx[y,0])
             if self.useTobii:
