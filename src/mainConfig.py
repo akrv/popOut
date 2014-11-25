@@ -58,7 +58,7 @@ class Config: #initial configuration that can be modified using the interface
                  'der Stern'
                  ]
     
-    '''We have 5 target objects and every object is shown five times with and five times without the appearance of this object'''
+    '''We have 5 target objects and every object is shown six times with and six times without the appearance of this object'''
     a = np.array([0,1,2,3,4]) #will be used to index the questions in the list questions
     y = np.tile(a,12)
     ze = np.zeros((30,), dtype= np.int)

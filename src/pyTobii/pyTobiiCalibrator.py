@@ -9,6 +9,7 @@ from pyTobiiCalibShapes import Cross, Quad
 import pyTetClient
 import pyTobiiConfiguration
 import random
+import pyTobiiCalibThreshold
 
 from psychopy import core, event
 
@@ -21,6 +22,7 @@ class pyTobiiCalibrator:
         self.__quad = Quad(self.__window, pyTobiiConfiguration.calibrationQuadSize, pyTobiiConfiguration.fixationColor)
         
         self.__isCalibrating = False
+        self.calibThreshold = pyTobiiCalibThreshold.CalibratorThreshold()
 
         
     def isCalibrating(self):
@@ -41,21 +43,31 @@ class pyTobiiCalibrator:
         Startet die Kalibrierung an den übergebenen Punkten.
         Speichert das Ergebnis in der entsprechenden Datei.
         '''
-        self.__isCalibrating = True
-        
-        #randomisiere reihenfolge
-        points = list(points)
-        random.shuffle(points)
-        
-        #sammle daten für jeden punkt
-        for i, posi in enumerate(points):
-            self.__calibPoint(posi[0], posi[1], fake)
+        pointsHere = points
+        self.reCalibrate = False
+        if self.reCalibrate == False:
+            self.__isCalibrating = True
             
-        if not fake:
-            #speichere neue calibration
-            self.__tc.CalculateAndSetCalibration()
-            self.__tc.SaveCalibrationToFile(filename)
-        self.__isCalibrating = False
+            #randomisiere reihenfolge
+            points = list(pointsHere)
+            random.shuffle(pointsHere)
+            
+            #sammle daten für jeden punkt
+            for i, posi in enumerate(pointsHere):
+                self.__calibPoint(posi[0], posi[1], fake)
+                
+            if not fake:
+                #speichere neue calibration
+                self.__tc.CalculateAndSetCalibration()
+                self.__tc.SaveCalibrationToFile(filename)
+            self.__isCalibrating = False
+
+
+            self.reCalibrate = self.calibThreshold.thresholdCheck(filename)
+            if self.reCalibrate == False:
+                self.clearCalibration()
+                self.calibrate(pointsHere, filename)
+                
         
     
     def getMissingPoints(self, points, filename):

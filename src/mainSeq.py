@@ -119,8 +119,8 @@ class Exp():
                     fileExists = False
                     
                     
-        #tobii.init(self.window, self.config.outputFolder+"/vp"+str(self.config.subject)+"/", tobiiFilename)
-        #self.useTobii = True
+#         tobii.init(self.window, self.config.outputFolder+"/vp"+str(self.config.subject)+"/", tobiiFilename)
+#         self.useTobii = True
         self.useTobii = False
         
     def TakeABreak(self):
@@ -265,6 +265,7 @@ class Exp():
             objectExistsPrac = self.config.questionIdxPrac[y,1]
             
             if self.save:
+                self.practiceSaving = True
                 self.resultData[self.trialPrac,:] = [self.config.subject, blockNoPrac, self.trialPrac, objectTypePrac, objectExistsPrac, responsePrac, reactionTimePrac]
                 self.trialPrac += 1
                 self.saveData()
@@ -433,6 +434,9 @@ class Exp():
     
     def saveData(self):
         filename = os.path.join(self.config.outputFolder, "vp"+str(self.config.subject), str(self.config.subject)+"_result_data.txt")
+        if self.practiceSaving:
+            filename = os.path.join(self.config.outputFolder, "vp"+str(self.config.subject), str(self.config.subject)+"_result_data_practice.txt")
+            
         np.savetxt(filename,self.resultData,fmt='%-10.1i\t%-10.1i\t%-10.1i\t%-10.1i\t%-10.1i\t%-10.1i\t%-10.6f',
             delimiter='\t',header='Subject\tBlock\tTrial\tobjectType\tobjectExists\tresponse\treactionTime',comments='')
         
